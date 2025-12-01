@@ -100,10 +100,17 @@
             pointer-events: none;
             z-index: 999;
         }
+        .note {
+            text-align: center;
+            color: #666;
+            margin: 10px 0;
+            font-style: italic;
+        }
     </style>
 </head>
 <body>
     <h1>数学练习题</h1>
+    <div class="note">注意：除法结果请保留一位小数</div>
     <div class="problems-container">
         <div id="problems"></div>
         <button class="submit-btn" onclick="checkAnswers()">提交答案</button>
@@ -123,16 +130,23 @@
             return operators[Math.floor(Math.random() * operators.length)];
         }
 
-        // 格式化除法题目（确保整除）
+        // 生成除法题目（允许小数结果）
         function generateDivisionProblem() {
-            let divisor = getRandomInt(1, 50);
-            let quotient = getRandomInt(1, 20);
-            let dividend = divisor * quotient;
+            // 使用较小的数字确保易于计算
+            const divisors = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+            const dividends = [10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100];
+            
+            let dividend = dividends[Math.floor(Math.random() * dividends.length)];
+            let divisor = divisors[Math.floor(Math.random() * divisors.length)];
+            
+            // 计算结果并保留一位小数
+            let answer = parseFloat((dividend / divisor).toFixed(1));
+            
             return {
                 num1: dividend,
                 operator: '/',
                 num2: divisor,
-                answer: quotient
+                answer: answer
             };
         }
 
@@ -142,15 +156,33 @@
             
             if (operator === '/') {
                 return generateDivisionProblem();
-            } else {
-                const num1 = getRandomInt(1, 1000);
-                const num2 = getRandomInt(1, 1000);
+            } else if (operator === '*' || operator === '+' || operator === '-') {
+                // 对于乘法，限制数字在12以内以方便计算
+                // 对于加减法，保持1000以内
+                let num1, num2, answer;
                 
-                let answer;
-                switch(operator) {
-                    case '+': answer = num1 + num2; break;
-                    case '-': answer = num1 - num2; break;
-                    case '*': answer = num1 * num2; break;
+                if (operator === '*') {
+                    // 使用较小的数字确保易于计算
+                    const multiplicands = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+                    num1 = multiplicands[Math.floor(Math.random() * multiplicands.length)];
+                    num2 = multiplicands[Math.floor(Math.random() * multiplicands.length)];
+                    answer = num1 * num2;
+                } else {
+                    num1 = getRandomInt(1, 1000);
+                    num2 = getRandomInt(1, 1000);
+                    if (operator === '+') {
+                        answer = num1 + num2;
+                    } else {
+                        answer = num1 - num2;
+                        // 确保减法结果不为负数
+                        if (answer < 0) {
+                            // 交换数值
+                            let temp = num1;
+                            num1 = num2;
+                            num2 = temp;
+                            answer = num1 - num2;
+                        }
+                    }
                 }
                 
                 return {
@@ -174,7 +206,7 @@
                 problemDiv.innerHTML = `
                     <div class="problem-number">${i}.</div>
                     <div class="problem-expression">${problem.num1} ${problem.operator} ${problem.num2} =</div>
-                    <input type="number" class="answer-input" id="answer${i}" data-correct="${problem.answer}">
+                    <input type="number" class="answer-input" id="answer${i}" data-correct="${problem.answer}" step="0.1">
                 `;
                 problemsContainer.appendChild(problemDiv);
             }
@@ -187,10 +219,11 @@
             
             for (let i = 1; i <= 10; i++) {
                 const input = document.getElementById(`answer${i}`);
-                const userAnswer = parseInt(input.value) || 0;
-                const correctAnswer = parseInt(input.dataset.correct);
+                const userAnswer = parseFloat(input.value) || 0;
+                const correctAnswer = parseFloat(input.dataset.correct);
                 
-                if (userAnswer === correctAnswer) {
+                // 对于除法问题，允许小数点后一位的误差
+                if (Math.abs(userAnswer - correctAnswer) < 0.05) {
                     correctCount++;
                     input.style.borderColor = '#4CAF50';
                 } else {
